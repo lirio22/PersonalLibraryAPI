@@ -9,9 +9,49 @@ public class BookService : IBookService
         _context = context;
     }
 
-    public async Task<List<BookResponse>> GetAllBooks()
+    public async Task<List<BookResponse>> GetAllBooks(bool? isRead, 
+    int? categoryId, string? title, string? sortBy, 
+    bool? descending, int? page, int? pageSize)
     {
-        return await _context.Books.AsNoTracking()
+        IQueryable<Book> query = _context.Books;
+
+        if(isRead.HasValue)
+            query = query.Where(x => x.IsRead == isRead.Value);
+
+        if(categoryId.HasValue)
+            query = query.Where(x => x.CategoryId == categoryId.Value);
+        
+        if(!string.IsNullOrWhiteSpace(title))
+            query = query.Where(x => x.Title == title);
+
+        if(!string.IsNullOrWhiteSpace(sortBy))
+        {
+            switch(sortBy)
+            {
+                case "title":
+                query = query.OrderBy(x => x.Title);
+                break;
+
+                case "author":
+                query = query.OrderBy(x => x.Author);
+                break;
+
+                case "id":
+                query = query.OrderBy(x => x.Id);
+                break;
+
+                default:
+                break;
+            }
+        }
+
+        if(descending.HasValue)
+            query = query.Reverse();
+
+        if(page.HasValue && pageSize.HasValue)
+            query = query.Skip(page.Value * pageSize.Value).Take(pageSize.Value);
+
+        return await query.AsNoTracking()
         .Select(book => new BookResponse
         {
             Id = book.Id,
@@ -26,19 +66,24 @@ public class BookService : IBookService
 
     public async Task<BookResponse?> GetBookById(int id)
     {
-        return await _context.Books.AsNoTracking()
+        var books = await _context.Books.AsNoTracking()
         .Where(book => book.Id == id)
-        .Select(book => new BookResponse
-        {
-            Id = book.Id,
-            Title = book.Title,
-            Author = book.Author,
-            IsRead = book.IsRead,
-            Rating = book.Rating,
-            CategoryId = book.CategoryId,
-            CategoryName = book.Category.Name
-        })
+        .Include(x => x.Category)
         .FirstOrDefaultAsync();
+
+        if(books is null)
+            return null;
+
+        return new BookResponse
+        {
+            Id = books.Id,
+            Title = books.Title,
+            Author = books.Author,
+            IsRead = books.IsRead,
+            Rating = books.Rating,
+            CategoryId = books.CategoryId,
+            CategoryName = books.Category.Name
+        };
     }
 
     public async Task<BookResponse?> CreateBook(CreateBookRequest request)
