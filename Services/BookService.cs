@@ -4,9 +4,12 @@ using Microsoft.EntityFrameworkCore;
 public class BookService : IBookService
 {
     private readonly AppDbContext _context;
-    public BookService(AppDbContext context)
+    private readonly IConfiguration _configuration;
+
+    public BookService(AppDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     public async Task<List<BookResponse>> GetAllBooks(bool? isRead, 
@@ -22,34 +25,50 @@ public class BookService : IBookService
             query = query.Where(x => x.CategoryId == categoryId.Value);
         
         if(!string.IsNullOrWhiteSpace(title))
-            query = query.Where(x => x.Title == title);
+            query = query.Where(x => x.Title.Contains(title));
 
         if(!string.IsNullOrWhiteSpace(sortBy))
         {
             switch(sortBy)
             {
                 case "title":
-                query = query.OrderBy(x => x.Title);
+                if(descending.HasValue && descending.Value)
+                    query = query.OrderByDescending(x => x.Title);
+                else    
+                    query = query.OrderBy(x => x.Title);
                 break;
 
                 case "author":
-                query = query.OrderBy(x => x.Author);
+                if(descending.HasValue && descending.Value)
+                    query = query.OrderByDescending(x => x.Author);
+                else
+                    query = query.OrderBy(x => x.Author);
                 break;
 
                 case "id":
-                query = query.OrderBy(x => x.Id);
+                if(descending.HasValue && descending.Value)
+                    query = query.OrderByDescending(x => x.Id);
+                else
+                    query = query.OrderBy(x => x.Id);
                 break;
 
                 default:
                 break;
             }
-        }
-
-        if(descending.HasValue)
-            query = query.Reverse();
+        }                    
 
         if(page.HasValue && pageSize.HasValue)
-            query = query.Skip(page.Value * pageSize.Value).Take(pageSize.Value);
+        {
+            var currentPage = page.Value;
+            if(currentPage < 1)
+                currentPage = 1;
+
+            int currentPageSize = pageSize.Value;
+            int maxPageSize = _configuration.GetValue<int>("LibrarySettings:MaxPageSize");
+            if(currentPageSize > maxPageSize)
+                currentPageSize = maxPageSize;
+            query = query.Skip((currentPage - 1) * currentPageSize).Take(currentPageSize);
+        }
 
         return await query.AsNoTracking()
         .Select(book => new BookResponse
@@ -92,7 +111,7 @@ public class BookService : IBookService
 
         if(category is null)
             return null;
-        
+
         Book book = new Book
         {
             Title = request.Title,
@@ -121,9 +140,14 @@ public class BookService : IBookService
 
     public async Task<BookResponse?> UpdateBook(int id, UpdateBookRequest request)
     {
-        var book = await _context.Books.AsNoTracking().Where(x => x.Id == id).FirstOrDefaultAsync();
+        var book = await _context.Books.Where(x => x.Id == id).FirstOrDefaultAsync();
 
         if(book is null)
+            return null;
+
+        Category? category = await _context.Categories.FindAsync(request.CategoryId);
+
+        if(category is null)
             return null;
 
         book.Title = request.Title;
@@ -131,7 +155,7 @@ public class BookService : IBookService
         book.IsRead = request.IsRead;
         book.Rating = request.Rating;
         book.CategoryId = request.CategoryId;
-        book.Category = request.Category;
+        book.Category = category;
 
         await _context.SaveChangesAsync();
 

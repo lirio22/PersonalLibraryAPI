@@ -7,5 +7,5 @@ public class Book
     public int? Rating { get; set; }
     public int CategoryId { get; set; }
     public Category? Category { get; set; } = null;
-
+    public int? PublishedYear { get; set; }
 }

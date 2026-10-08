@@ -16,7 +16,6 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             Name = category.Name,
-            Books = category.Books
         }).AsNoTracking().ToListAsync();
     }
 
@@ -27,7 +26,6 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             Name = category.Name,
-            Books = category.Books
         }).AsNoTracking().FirstOrDefaultAsync();
     }
 
@@ -36,7 +34,6 @@ public class CategoryService : ICategoryService
         Category category = new Category
         {
             Name = request.Name,
-            Books = request.Books
         };
 
         _context.Categories.Add(category);
@@ -47,7 +44,6 @@ public class CategoryService : ICategoryService
         {
           Id = category.Id,
           Name = category.Name,
-          Books = category.Books  
         };
     }
 
@@ -59,7 +55,6 @@ public class CategoryService : ICategoryService
             return null;
 
         category.Name = request.Name;
-        category.Books = request.Books;
 
         await _context.SaveChangesAsync();
 
@@ -67,7 +62,6 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             Name = category.Name,
-            Books = category.Books,
         };
     }
 

@@ -14,5 +14,4 @@ public class CreateBookRequest
     [Range(1, 5, ErrorMessage = "The Rating field must be between 1 and 5.")]
     public int? Rating { get; set; }
     public int CategoryId { get; set; }
-    public Category? Category { get; set; }
 }

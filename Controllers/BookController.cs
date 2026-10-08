@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -21,7 +22,7 @@ public class BookController : ControllerBase
         return Ok(books);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<BookResponse>> GetBookById(int id)
     {
         var book = await _bookService.GetBookById(id);
@@ -33,6 +34,7 @@ public class BookController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<BookResponse>> CreateBook(CreateBookRequest request)
     {
         var book = await _bookService.CreateBook(request);
@@ -43,7 +45,8 @@ public class BookController : ControllerBase
         return Created($"/api/books/{book.Id}", book);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
+    [Authorize]
     public async Task<ActionResult<BookResponse>> UpdateBook(int id, UpdateBookRequest request)
     {
         var book = await _bookService.UpdateBook(id, request);
@@ -54,7 +57,8 @@ public class BookController : ControllerBase
         return Ok();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize( Policy = "AdminOnly")]
     public async Task<IActionResult> DeleteBook(int id)
     {
         var deleted = await _bookService.DeleteBook(id);

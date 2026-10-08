@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -18,7 +19,7 @@ public class CategoryController : ControllerBase
         return Ok(categories);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<CategoryResponse>> GetCategoryById(int id)
     {
         var response = await _categoryService.GetCategoryByIdAsync(id);
@@ -30,6 +31,7 @@ public class CategoryController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize( Policy = "AdminOnly")]
     public async Task<ActionResult<CategoryResponse>> CreateCategory(CreateCategoryRequest request)
     {
         var createdCategory = await _categoryService.CreateCategoryAsync(request);
@@ -37,7 +39,8 @@ public class CategoryController : ControllerBase
         return Created($"/api/categories/{createdCategory.Id}", createdCategory);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
+    [Authorize( Policy = "AdminOnly")]
     public async Task<ActionResult<CategoryResponse>> UpdateCategory(int id, UpdateCategoryRequest request)
     {
         var category = await _categoryService.UpdateCategoryAsync(id, request);
@@ -48,7 +51,8 @@ public class CategoryController : ControllerBase
         return Ok(category);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize( Policy = "AdminOnly")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
         bool? deleted = await _categoryService.DeleteCategoryAsync(id);
