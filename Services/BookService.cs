@@ -14,7 +14,7 @@ public class BookService : IBookService
 
     public async Task<List<BookResponse>> GetAllBooks(bool? isRead, 
     int? categoryId, string? title, string? sortBy, 
-    bool? descending, int? page, int? pageSize)
+    bool? descending, int page, int pageSize)
     {
         IQueryable<Book> query = _context.Books;
 
@@ -57,18 +57,16 @@ public class BookService : IBookService
             }
         }                    
 
-        if(page.HasValue && pageSize.HasValue)
-        {
-            var currentPage = page.Value;
-            if(currentPage < 1)
+        var currentPage = page;
+        if(currentPage < 1)
                 currentPage = 1;
 
-            int currentPageSize = pageSize.Value;
+            int currentPageSize = pageSize;
             int maxPageSize = _configuration.GetValue<int>("LibrarySettings:MaxPageSize");
             if(currentPageSize > maxPageSize)
                 currentPageSize = maxPageSize;
             query = query.Skip((currentPage - 1) * currentPageSize).Take(currentPageSize);
-        }
+       
 
         return await query.AsNoTracking()
         .Select(book => new BookResponse
@@ -138,17 +136,17 @@ public class BookService : IBookService
         };
     }
 
-    public async Task<BookResponse?> UpdateBook(int id, UpdateBookRequest request)
+    public async Task<(string, BookResponse?)> UpdateBook(int id, UpdateBookRequest request)
     {
         var book = await _context.Books.Where(x => x.Id == id).FirstOrDefaultAsync();
 
         if(book is null)
-            return null;
+            return ("Book not found", null);
 
         Category? category = await _context.Categories.FindAsync(request.CategoryId);
 
         if(category is null)
-            return null;
+            return ("Category not found", null);
 
         book.Title = request.Title;
         book.Author = request.Author;
@@ -159,7 +157,7 @@ public class BookService : IBookService
 
         await _context.SaveChangesAsync();
 
-        return new BookResponse
+        return ("", new BookResponse
         {
             Id = book.Id,
             Title = book.Title,
@@ -168,7 +166,7 @@ public class BookService : IBookService
             Rating = book.Rating,
             CategoryId = book.CategoryId,
             CategoryName = book.Category.Name
-        };
+        });
     }
 
     public async Task<bool> DeleteBook(int id)

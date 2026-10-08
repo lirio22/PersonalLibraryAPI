@@ -14,7 +14,7 @@ public class BookController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<BookResponse>>> GetAllBooks([FromQuery] bool? isRead, 
     [FromQuery] int? categoryId, [FromQuery] string? title, [FromQuery] string? sortBy, 
-    [FromQuery] bool? descending, [FromQuery] int? page, [FromQuery] int? pageSize)
+    [FromQuery] bool? descending, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var books = await _bookService.GetAllBooks(isRead, categoryId, 
         title, sortBy, descending, page, pageSize);
@@ -49,12 +49,21 @@ public class BookController : ControllerBase
     [Authorize]
     public async Task<ActionResult<BookResponse>> UpdateBook(int id, UpdateBookRequest request)
     {
-        var book = await _bookService.UpdateBook(id, request);
+        (string, BookResponse?) book = await _bookService.UpdateBook(id, request);
 
-        if(book is null)
-            return NotFound();
+        if(book.Item2 is null)
+        {
+            if(book.Item1 == "Book not found")
+                return NotFound(book.Item1);
+            
+            if(book.Item1 == "Category not found")
+                return BadRequest(book.Item1);
+            
+            return BadRequest(book.Item1);
+        }
+            
 
-        return Ok();
+        return Ok(book.Item2);
     }
 
     [HttpDelete("{id:int}")]
